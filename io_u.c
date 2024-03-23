@@ -1541,8 +1541,11 @@ struct io_u *__get_io_u(struct thread_data *td)
 	if (td->stop_io)
 		return NULL;
 
-	if (needs_lock)
+	if (needs_lock){
+		printf("needs lock\n");
 		__td_io_u_lock(td);
+	}
+		
 
 again:
 	if (!io_u_rempty(&td->io_u_requeues))

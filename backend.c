@@ -977,7 +977,8 @@ static void do_io(struct thread_data *td, uint64_t *bytes_done)
 		    (!td->o.time_based ||
 		     (td->o.time_based && td->o.verify != VERIFY_NONE)))
 			break;
-
+		
+		//新建io
 		io_u = get_io_u(td);
 		if (IS_ERR_OR_NULL(io_u)) {
 			int err = PTR_ERR(io_u);
