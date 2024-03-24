@@ -1267,6 +1267,7 @@ static void populate_hdr(struct thread_data *td, struct io_u *io_u,
 	case VERIFY_PATTERN:
 	case VERIFY_PATTERN_NO_HDR:
 		/* nothing to do here */
+		printf("no verify\n");
 		break;
 	default:
 		log_err("fio: bad verify type: %d\n", td->o.verify);
