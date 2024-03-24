@@ -979,6 +979,7 @@ static void do_io(struct thread_data *td, uint64_t *bytes_done)
 			break;
 		
 		//新建io
+		printf("get_io_u\n");
 		io_u = get_io_u(td);
 		if (IS_ERR_OR_NULL(io_u)) {
 			int err = PTR_ERR(io_u);
@@ -1053,6 +1054,7 @@ static void do_io(struct thread_data *td, uint64_t *bytes_done)
 				td->rate_next_io_time[__ddir] = usec_for_io(td, __ddir);
 
 		} else {
+			printf("io_u_submit\n");
 			ret = io_u_submit(td, io_u);
 
 			if (should_check_rate(td))
