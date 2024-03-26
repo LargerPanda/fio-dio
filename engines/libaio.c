@@ -97,15 +97,69 @@ static inline void ring_inc(struct libaio_data *ld, unsigned int *val,
 		*val = (*val + add) % ld->entries;
 }
 
+#define ALIGNMENT 4096 // 4k对齐
+
+void* align_to_4k(void* buffer, size_t size) {
+    // 计算当前缓冲区的偏移量
+    size_t offset = (size_t)size % ALIGNMENT;
+    
+    // 如果偏移量不是0，则需要进行对齐
+    if (offset != 0) {
+        // 计算需要填充的字节数
+        size_t padding = ALIGNMENT - offset;
+        
+        // 计算新的大小
+        size_t new_size = size + padding;
+        
+        // 分配新的缓冲区
+        //void* new_buffer = malloc(new_size);
+		void* new_buffer = malloc(size);
+        if (new_buffer == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            return NULL;
+        }
+		//printf("raw buffer address: %p\n",buffer);
+        
+        // 将原始数据复制到新缓冲区
+        //memcpy(new_buffer, buffer, size);
+        
+        // 释放原始缓冲区
+        //free(buffer);
+        
+        // 返回新的对齐后的缓冲区
+        return new_buffer;
+    }
+    
+    // 如果已经对齐，则直接返回原始缓冲区
+    return buffer;
+}
+
 static int fio_libaio_prep(struct thread_data fio_unused *td, struct io_u *io_u)
 {
 	struct fio_file *f = io_u->file;
 	struct iocb *iocb = &io_u->iocb;
 
 	if (io_u->ddir == DDIR_READ) {
+		//printf("io_prep_pread\n");
 		io_prep_pread(iocb, f->fd, io_u->xfer_buf, io_u->xfer_buflen, io_u->offset);
 	} else if (io_u->ddir == DDIR_WRITE) {
-		io_prep_pwrite(iocb, f->fd, io_u->xfer_buf, io_u->xfer_buflen, io_u->offset);
+		//printf("raw xfer_buf address: %p, size=%d\n",io_u->xfer_buf,sizeof(io_u->xfer_buf));
+		//printf("io_prep_pwrite,buflen=%llu\n",io_u->xfer_buflen);
+		//扩充
+		// void* new_buffer = align_to_4k(io_u->xfer_buf,io_u->xfer_buflen);
+		// io_u->buf = new_buffer;
+		// io_u->xfer_buf = io_u->buf;
+		// //io_u->xfer_buflen += (ALIGNMENT - io_u->xfer_buflen % ALIGNMENT);
+		// io_u->xfer_buflen += 0; 
+		// io_u->buflen=io_u->xfer_buflen;
+		//
+		//io_prep_pwrite(iocb, f->fd, io_u->xfer_buf, io_u->xfer_buflen, io_u->offset);
+		int new_xfer_buflen=io_u->xfer_buflen;
+		if(io_u->xfer_buflen % ALIGNMENT){
+			new_xfer_buflen = io_u->xfer_buflen + (ALIGNMENT - io_u->xfer_buflen % ALIGNMENT);
+		}
+		io_prep_pwrite(iocb, f->fd, io_u->xfer_buf, new_xfer_buflen, io_u->offset);
+		//printf("after prepare, xfer_buf=%p, xfer_buflen=%d\n",iocb->u.c.buf,iocb->u.c.nbytes);
 	} else if (ddir_sync(io_u->ddir))
 		io_prep_fsync(iocb, f->fd);
 
@@ -132,8 +186,13 @@ static struct io_u *fio_libaio_event(struct thread_data *td, int event)
 	ev = ld->aio_events + event;
 	io_u = container_of(ev->obj, struct io_u, iocb);
 
+	//printf("ev->res:%d, io_u->xfer_buflen:%llu\n",ev->res,io_u->xfer_buflen);
+
 	if (ev->res != io_u->xfer_buflen) {
-		if (ev->res > io_u->xfer_buflen)
+
+		if(ev->res==(io_u->xfer_buflen+ALIGNMENT-io_u->xfer_buflen%ALIGNMENT)){
+			//收到的是4k结束的没有问题
+		}else if (ev->res > io_u->xfer_buflen)
 			io_u->error = -ev->res;
 		else
 			io_u->resid = io_u->xfer_buflen - ev->res;
@@ -208,6 +267,7 @@ static int fio_libaio_getevents(struct thread_data *td, unsigned int min,
 		} else {
 			r = io_getevents(ld->aio_ctx, actual_min,
 				max, ld->aio_events + events, lt);
+			//printf("iogetevents returns%d,ev->res = %d\n",r,(ld->aio_events + events)->res);
 		}
 		if (r > 0)
 			events += r;
@@ -305,6 +365,7 @@ static int fio_libaio_commit(struct thread_data *td)
 		iocbs = ld->iocbs + ld->tail;
 
 		ret = io_submit(ld->aio_ctx, nr, iocbs);
+		//printf("io_submit return %d\n",ret);
 		if (ret > 0) {
 			fio_libaio_queued(td, io_us, ret);
 			io_u_mark_submit(td, ret);

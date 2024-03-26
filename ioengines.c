@@ -256,8 +256,11 @@ int td_io_getevents(struct thread_data *td, unsigned int min, unsigned int max,
 		max = min;
 
 	r = 0;
-	if (max && td->io_ops->getevents)
+	if (max && td->io_ops->getevents){
 		r = td->io_ops->getevents(td, min, max, t);
+		//printf("getevents returns %d\n",r);
+	}	
+		
 out:
 	if (r >= 0) {
 		/*
@@ -386,8 +389,11 @@ enum fio_q_status td_io_queue(struct thread_data *td, struct io_u *io_u)
 		    (ddir_sync(io_u->ddir) && td->runstate != TD_FSYNCING))
 			td->ts.total_io_u[io_u->ddir]++;
 
-		if (td->io_u_queued >= td->o.iodepth_batch)
+		if (td->io_u_queued >= td->o.iodepth_batch){
+			//printf("td->io_u_queued >= td->o.iodepth_batch, commit\n");
 			td_io_commit(td);
+		}
+			
 	}
 
 	if (!td_ioengine_flagged(td, FIO_SYNCIO) &&

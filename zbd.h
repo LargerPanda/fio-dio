@@ -98,6 +98,7 @@ static inline void zbd_close_file(struct fio_file *f)
 
 static inline void zbd_queue_io_u(struct io_u *io_u, enum fio_q_status status)
 {
+	//printf("zbd_queue_io\n");
 	if (io_u->zbd_queue_io) {
 		io_u->zbd_queue_io(io_u, status, io_u->error == 0);
 		io_u->zbd_queue_io = NULL;

@@ -34,6 +34,7 @@
 */
 
 #include <string.h>
+#include <stdio.h>
 #include "rand.h"
 #include "pattern.h"
 #include "../hash.h"
@@ -98,7 +99,7 @@ void init_rand_seed(struct frand_state *state, uint64_t seed, bool use64)
 void __fill_random_buf(void *buf, unsigned int len, uint64_t seed)
 {
 	void *ptr = buf;
-
+	//printf("__fill_random_buf,buf=%p,len=%d\n",buf,len);
 	while (len) {
 		int this_len;
 

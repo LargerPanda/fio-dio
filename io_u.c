@@ -887,6 +887,7 @@ static void setup_strided_zone_mode(struct thread_data *td, struct io_u *io_u)
 
 static int fill_io_u(struct thread_data *td, struct io_u *io_u)
 {
+	//printf("in fill_io_u\n");
 	bool is_random;
 	uint64_t offset;
 	enum io_u_action ret;
@@ -1542,7 +1543,7 @@ struct io_u *__get_io_u(struct thread_data *td)
 		return NULL;
 
 	if (needs_lock){
-		printf("needs lock\n");
+		//printf("needs lock\n");
 		__td_io_u_lock(td);
 	}
 		
@@ -1745,6 +1746,7 @@ struct io_u *get_io_u(struct thread_data *td)
 
 		if (io_u->ddir == DDIR_WRITE) {
 			if (td->flags & TD_F_REFILL_BUFFERS) {
+				//printf("io_u_fill_buffer\n");
 				io_u_fill_buffer(td, io_u,
 					td->o.min_bs[DDIR_WRITE],
 					io_u->buflen);
@@ -1918,7 +1920,13 @@ static bool should_account(struct thread_data *td)
 static void io_completed(struct thread_data *td, struct io_u **io_u_ptr,
 			 struct io_completion_data *icd)
 {
+	
+	
+
 	struct io_u *io_u = *io_u_ptr;
+
+	//printf("io_u->error=%d\n",io_u->error);
+
 	enum fio_ddir ddir = io_u->ddir;
 	struct fio_file *f = io_u->file;
 
@@ -1926,7 +1934,8 @@ static void io_completed(struct thread_data *td, struct io_u **io_u_ptr,
 
 	assert(io_u->flags & IO_U_F_FLIGHT);
 	io_u_clear(td, io_u, IO_U_F_FLIGHT | IO_U_F_BUSY_OK);
-
+	
+	//printf("io_u->error=%d\n",io_u->error);
 	/*
 	 * Mark IO ok to verify
 	 */
@@ -1984,6 +1993,7 @@ static void io_completed(struct thread_data *td, struct io_u **io_u_ptr,
 		}
 	} else if (io_u->error) {
 		icd->error = io_u->error;
+		//printf("io_u_log_error\n");
 		io_u_log_error(td, io_u);
 	}
 	if (icd->error) {
@@ -2027,8 +2037,12 @@ static void ios_completed(struct thread_data *td,
 
 	for (i = 0; i < icd->nr; i++) {
 		io_u = td->io_ops->event(td, i);
-
+		
+		//强制让error=0
+		//icd->error = 0;
 		io_completed(td, &io_u, icd);
+		
+		
 
 		if (io_u)
 			put_io_u(td, io_u);
@@ -2044,6 +2058,7 @@ int io_u_sync_complete(struct thread_data *td, struct io_u *io_u)
 	int ddir;
 
 	init_icd(td, &icd, 1);
+	//printf("io_u_sync_complete\n");
 	io_completed(td, &io_u, &icd);
 
 	if (io_u)
@@ -2087,6 +2102,7 @@ int io_u_queued_complete(struct thread_data *td, int min_evts)
 		return ret;
 
 	init_icd(td, &icd, ret);
+	//printf("icd->error after init_icd = %d\n", icd.error);
 	ios_completed(td, &icd);
 	if (icd.error) {
 		td_verror(td, icd.error, "io_u_queued_complete");

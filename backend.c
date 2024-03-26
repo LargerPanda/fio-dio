@@ -979,8 +979,9 @@ static void do_io(struct thread_data *td, uint64_t *bytes_done)
 			break;
 		
 		//新建io
-		printf("get_io_u\n");
+		
 		io_u = get_io_u(td);
+		//printf("after get_io_u, xfer_len=%llu\n",io_u->xfer_buflen);
 		if (IS_ERR_OR_NULL(io_u)) {
 			int err = PTR_ERR(io_u);
 
@@ -995,8 +996,13 @@ static void do_io(struct thread_data *td, uint64_t *bytes_done)
 			break;
 		}
 
-		if (io_u->ddir == DDIR_WRITE && td->flags & TD_F_DO_VERIFY)
+		if (io_u->ddir == DDIR_WRITE && td->flags & TD_F_DO_VERIFY){
+			//printf("populate_verify_io_u\n");
 			populate_verify_io_u(td, io_u);
+		}else{
+			//printf("no populate_verify_io_u\n");
+		}
+			
 
 		ddir = io_u->ddir;
 
@@ -1054,7 +1060,8 @@ static void do_io(struct thread_data *td, uint64_t *bytes_done)
 				td->rate_next_io_time[__ddir] = usec_for_io(td, __ddir);
 
 		} else {
-			printf("io_u_submit\n");
+			//sftp sync success
+			//printf("io_u_submit\n");
 			ret = io_u_submit(td, io_u);
 
 			if (should_check_rate(td))
@@ -1071,8 +1078,11 @@ static void do_io(struct thread_data *td, uint64_t *bytes_done)
 reap:
 			full = queue_full(td) ||
 				(ret == FIO_Q_BUSY && td->cur_depth);
-			if (full || io_in_polling(td))
+			if (full || io_in_polling(td)){
+				//printf("goto wait_for_completions\n");
 				ret = wait_for_completions(td, &comp_time);
+			}
+				
 		}
 		if (ret < 0)
 			break;
@@ -1318,6 +1328,7 @@ int init_io_u_buffers(struct thread_data *td)
 
 		if (data_xfer) {
 			io_u->buf = p;
+			//printf("in init_io_u_buffer, io_u->buf=%p\n",io_u->buf);
 			dprint(FD_MEM, "io_u %p, mem %p\n", io_u, io_u->buf);
 
 			if (td_write(td))
