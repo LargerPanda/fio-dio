@@ -158,7 +158,20 @@ static int fio_libaio_prep(struct thread_data fio_unused *td, struct io_u *io_u)
 		if(io_u->xfer_buflen % ALIGNMENT){
 			new_xfer_buflen = io_u->xfer_buflen + (ALIGNMENT - io_u->xfer_buflen % ALIGNMENT);
 		}
-		io_prep_pwrite(iocb, f->fd, io_u->xfer_buf, new_xfer_buflen, io_u->offset);
+		int new_offset = io_u->offset;
+		if(io_u->offset%ALIGNMENT){
+			new_offset = io_u->offset - io_u->offset%ALIGNMENT;
+			if(new_offset<0){
+				new_offset = 0;
+			}
+		}
+		void* new_buffer = malloc(new_xfer_buflen+page_size-1);
+		void* p = PTR_ALIGN(new_buffer, page_mask)+td->o.mem_align;
+		//对p的最后1个字节进行编辑,
+		((char*)p)[new_xfer_buflen-1] = 'a';
+		printf("new_offset=%d, new_length=%d\n",new_offset,new_xfer_buflen);
+		printf("last buffer=%c\n",((char*)p)[new_xfer_buflen-1]);
+		io_prep_pwrite(iocb, f->fd, p, new_xfer_buflen, new_offset);
 		//printf("after prepare, xfer_buf=%p, xfer_buflen=%d\n",iocb->u.c.buf,iocb->u.c.nbytes);
 	} else if (ddir_sync(io_u->ddir))
 		io_prep_fsync(iocb, f->fd);

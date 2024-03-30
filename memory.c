@@ -197,7 +197,9 @@ static void free_mem_mmap(struct thread_data *td, size_t total_mem)
 
 static int alloc_mem_malloc(struct thread_data *td, size_t total_mem)
 {
+	
 	td->orig_buffer = malloc(total_mem);
+	printf("alloc_mem_malloc,orig_buffer=%p,total_mem=%d\n",td->orig_buffer,total_mem);
 	dprint(FD_MEM, "malloc %llu %p\n", (unsigned long long) total_mem,
 							td->orig_buffer);
 

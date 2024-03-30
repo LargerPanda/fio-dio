@@ -1317,10 +1317,14 @@ int init_io_u_buffers(struct thread_data *td)
 		return 1;
 
 	if (td->o.odirect || td->o.mem_align || td->o.oatomic ||
-	    td_ioengine_flagged(td, FIO_RAWIO))
+	    td_ioengine_flagged(td, FIO_RAWIO)){
 		p = PTR_ALIGN(td->orig_buffer, page_mask) + td->o.mem_align;
-	else
+		printf("p = %p\n",p);
+		printf("max_bs = %d,page_mask=%d\n",max_bs,td->o.mem_align);
+	}
+	else{
 		p = td->orig_buffer;
+	}
 
 	for (i = 0; i < max_units; i++) {
 		io_u = td->io_u_all.io_us[i];
@@ -1328,7 +1332,7 @@ int init_io_u_buffers(struct thread_data *td)
 
 		if (data_xfer) {
 			io_u->buf = p;
-			//printf("in init_io_u_buffer, io_u->buf=%p\n",io_u->buf);
+			//printf("in init_io_u_buffers, io_u->buf=%p\n",io_u->buf);
 			dprint(FD_MEM, "io_u %p, mem %p\n", io_u, io_u->buf);
 
 			if (td_write(td))
