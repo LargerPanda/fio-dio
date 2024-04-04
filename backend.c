@@ -1319,8 +1319,8 @@ int init_io_u_buffers(struct thread_data *td)
 	if (td->o.odirect || td->o.mem_align || td->o.oatomic ||
 	    td_ioengine_flagged(td, FIO_RAWIO)){
 		p = PTR_ALIGN(td->orig_buffer, page_mask) + td->o.mem_align;
-		printf("p = %p\n",p);
-		printf("max_bs = %d,page_mask=%d\n",max_bs,td->o.mem_align);
+		//printf("mydebug: p = %p\n",p);
+		//printf("max_bs = %d,page_mask=%d\n",max_bs,td->o.mem_align);
 	}
 	else{
 		p = td->orig_buffer;
