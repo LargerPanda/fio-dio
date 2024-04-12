@@ -20,7 +20,8 @@ fd1 = open("/users/hys/iosize-bandwidth.txt", "a")
 for iosize in range(1,1025):
     #修改配置配置文件
     if True:
-        run_cmd = "/users/hys/env/fio/bin/fio -filename=/users/hys/cephrbd/test -direct=1 -iodepth 10 -thread -rw=randwrite -ioengine=libaio -bs=%dk -size=%dM -numjobs=10 -runtime=15 -group_reporting -name=rand_100write_4k"%(iosize,iosize)
+    #if iosize%4!=0:
+        run_cmd = "/users/hys/env/fio/bin/fio -filename=/users/hys/cephrbd/test -direct=1 -iodepth 10 -thread -rw=randwrite -ioengine=libaio -bs=%dk -size=%dk -numjobs=10 -runtime=15 -group_reporting -name=rand_100write_4k"%(iosize,100*iosize)
         #print(run_cmd)
         bw = 0.0
         bw_total = 0.0
@@ -47,6 +48,6 @@ for iosize in range(1,1025):
         bw = bw_total/2
         fd1.write(str(iosize)+" "+str(bw)+"\n")
         fd1.flush()
-        time.sleep(5)    
+        time.sleep(10)    
 
 fd1.close()
