@@ -8,13 +8,14 @@ import sys
 import math
 
 #该实验用于得到1-1024k的请求与大小的关系
-#io数量为1，并发度为10
+#用于测试random写的数据
+#io为100，并发读为10
 final_bandwidth={}
 print("start testing")
 
 testcase = [1024]
 
-fd1 = open("/users/hys/iosize-bandwidth-1io10job.txt", "a")
+fd1 = open("/users/hys/iosize-bandwidth-100io10job-rand.txt", "a")
 #fd1.write("iosize bandwidth\n")    
 #for iosize in range(3,4):
 #for iosize in testcase:
@@ -22,7 +23,7 @@ for iosize in range(1,1025):
     #修改配置配置文件
     if True:
     #if iosize%4!=0:
-        run_cmd = "/users/hys/env/fio/bin/fio -filename=/users/hys/cephrbd/test -direct=1 -iodepth 10 -thread -rw=randwrite -ioengine=libaio -bs=%dk -size=%dk -numjobs=10 -runtime=15 -group_reporting -name=rand_100write_4k"%(iosize,iosize)
+        run_cmd = "/users/hys/env/fio/bin/fio -filename=/users/hys/cephrbd/test -direct=1 -iodepth 10 -thread -rw=randwrite -ioengine=libaio -bs=%dk -size=%dk -numjobs=10 -runtime=15 -group_reporting -name=rand_100write_4k"%(iosize,100*iosize)
         #print(run_cmd)
         bw = 0.0
         bw_total = 0.0
