@@ -897,6 +897,10 @@ static void handle_thinktime(struct thread_data *td, enum fio_ddir ddir)
 	}
 }
 
+int overlap_with_inflight(void*, void*){
+	return 1;
+}
+
 /*
  * Main IO worker function. It retrieves io_u's to process and queues
  * and reaps them, checking for rate and errors along the way.
