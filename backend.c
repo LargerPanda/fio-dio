@@ -897,7 +897,7 @@ static void handle_thinktime(struct thread_data *td, enum fio_ddir ddir)
 	}
 }
 
-int overlap_with_inflight(void*, void*){
+int overlap_with_inflight(struct io_u_queue *q, struct io_u *io_u){
 	return 1;
 }
 
