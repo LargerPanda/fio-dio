@@ -141,6 +141,8 @@ struct io_u {
  */
 extern struct io_u *__get_io_u(struct thread_data *);
 extern struct io_u *get_io_u(struct thread_data *);
+extern struct io_u *get_io_u_log(struct thread_data *);
+
 extern void put_io_u(struct thread_data *, struct io_u *);
 extern void clear_io_u(struct thread_data *, struct io_u *);
 extern void requeue_io_u(struct thread_data *, struct io_u **);

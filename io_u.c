@@ -1687,6 +1687,138 @@ static void small_content_scramble(struct io_u *io_u)
 	}
 }
 
+#define LOG_FILE "/users/hys/ssd/io_log.bin"
+#define ALIGNMENT 4096
+#define BUFFER_SIZE 4096
+
+/*
+ * Return an io_u with log
+ */
+struct io_u *get_io_u_log(struct thread_data *td)
+{
+	struct fio_file *f;
+	struct io_u *io_u;
+	int do_scramble = 0;
+	long ret = 0;
+
+	io_u = __get_io_u(td);
+	if (!io_u) {
+		dprint(FD_IO, "__get_io_u failed\n");
+		return NULL;
+	}
+
+	if (check_get_verify(td, io_u))
+		goto out;
+	if (check_get_trim(td, io_u))
+		goto out;
+
+	/*
+	 * from a requeue, io_u already setup
+	 */
+	if (io_u->file)
+		goto out;
+
+	/*
+	 * If using an iolog, grab next piece if any available.
+	 */
+	if (td->flags & TD_F_READ_IOLOG) {
+		if (read_iolog_get(td, io_u))
+			goto err_put;
+	} else if (set_io_u_file(td, io_u)) {
+		ret = -EBUSY;
+		dprint(FD_IO, "io_u %p, setting file failed\n", io_u);
+		goto err_put;
+	}
+
+	f = io_u->file;
+	if (!f) {
+		dprint(FD_IO, "io_u %p, setting file failed\n", io_u);
+		goto err_put;
+	}
+
+	assert(fio_file_open(f));
+
+	if (ddir_rw(io_u->ddir)) {
+		if (!io_u->buflen && !td_ioengine_flagged(td, FIO_NOIO)) {
+			dprint(FD_IO, "get_io_u: zero buflen on %p\n", io_u);
+			goto err_put;
+		}
+
+		f->last_start[io_u->ddir] = io_u->offset;
+		f->last_pos[io_u->ddir] = io_u->offset + io_u->buflen;
+
+		if (io_u->ddir == DDIR_WRITE) {
+			if (td->flags & TD_F_REFILL_BUFFERS) {
+				//printf("io_u_fill_buffer\n");
+				io_u_fill_buffer(td, io_u,
+					td->o.min_bs[DDIR_WRITE],
+					io_u->buflen);
+			} else if ((td->flags & TD_F_SCRAMBLE_BUFFERS) &&
+				   !(td->flags & TD_F_COMPRESS) &&
+				   !(td->flags & TD_F_DO_VERIFY))
+				do_scramble = 1;
+		} else if (io_u->ddir == DDIR_READ) {
+			/*
+			 * Reset the buf_filled parameters so next time if the
+			 * buffer is used for writes it is refilled.
+			 */
+			io_u->buf_filled_len = 0;
+		}
+	}
+
+	/*
+	 * Set io data pointers.
+	 */
+	io_u->xfer_buf = io_u->buf;
+	io_u->xfer_buflen = io_u->buflen;
+
+	//更改数据
+	int new_xfer_buflen=io_u->xfer_buflen;
+	if(io_u->xfer_buflen % ALIGNMENT){
+		new_xfer_buflen = io_u->xfer_buflen + (ALIGNMENT - io_u->xfer_buflen % ALIGNMENT);
+	}
+	int new_offset = io_u->offset;
+	if(io_u->offset%ALIGNMENT){
+		new_offset = io_u->offset - io_u->offset%ALIGNMENT;
+		if(new_offset<0){
+			new_offset = 0;
+		}
+	}
+	void* new_buffer = malloc(new_xfer_buflen+page_size-1);
+	void* p = PTR_ALIGN(new_buffer, page_mask)+td->o.mem_align;
+	//对p的最后1个字节进行编辑,
+	((char*)p)[new_xfer_buflen-1] = 'a';
+	//printf("new_offset=%d, new_length=%d\n",new_offset,new_xfer_buflen);
+	//printf("last buffer=%c\n",((char*)p)[new_xfer_buflen-1]);
+
+	io_u->xfer_buf = new_buffer;
+	io_u->xfer_buflen = new_xfer_buflen;
+	io_u->offset = new_offset;
+	io_u->offset = 0;
+
+
+	FILE *log_file = fopen(LOG_FILE, "ab");
+	//更改io_u的目标文件，偏移和大小
+	io_u->file->file_name= LOG_FILE;
+	io_u->file->fd= fileno(log_file);
+
+out:
+	assert(io_u->file);
+	if (!td_io_prep(td, io_u)) {
+		if (!td->o.disable_lat)
+			fio_gettime(&io_u->start_time, NULL);
+
+		if (do_scramble)
+			small_content_scramble(io_u);
+
+		return io_u;
+	}
+err_put:
+	dprint(FD_IO, "get_io_u failed\n");
+	put_io_u(td, io_u);
+	return ERR_PTR(ret);
+}
+
 /*
  * Return an io_u to be processed. Gets a buflen and offset, sets direction,
  * etc. The returned io_u is fully ready to be prepped, populated and submitted.

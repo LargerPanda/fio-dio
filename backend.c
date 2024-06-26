@@ -980,7 +980,18 @@ static void do_io(struct thread_data *td, uint64_t *bytes_done)
 		
 		//新建io
 		
-		io_u = get_io_u(td);
+		io_u = get_io_u(td);//会调用libaio.c里面的prep
+
+		//开始进行日志化
+		int unaligned_log = 1;
+		if(unaligned_log){
+			//检查队列中是否有元素并重合
+			if(td->cur_depth > 0 && overlap_with_inflight(&td->io_u_all, io_u)){
+				//开始补齐
+				io_u = get_io_u_log(td);
+
+			} 
+		}
 		//printf("after get_io_u, xfer_len=%llu\n",io_u->xfer_buflen);
 		if (IS_ERR_OR_NULL(io_u)) {
 			int err = PTR_ERR(io_u);

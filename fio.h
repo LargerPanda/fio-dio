@@ -276,6 +276,9 @@ struct thread_data {
 	struct ioengine_ops *io_ops;
 	int io_ops_init;
 
+	//是否进行非对齐日志
+	int unaligned_log;
+
 	/*
 	 * IO engine private data and dlhandle.
 	 */
